@@ -12,35 +12,37 @@ function httpRequest(value) {
     setTimeout(() => resvole(value), 1000)
   })
 }
-const defaultHotSetting = {
-  columns: [
-    {
-      data: "",
-      type: "checkbox",
-    },
-    {
-      data: "id",
-      type: "text",
-      readOnly: true,
-      renderer: 'renderIdColumn'
-    },
-    {
-      data: "name",
-      type: "text",
-      readOnly: true,
-    },
-  ],
-  colHeaders: ["", "Id", "Name"],
-  rowHeaders: true,
-  className: "htLeft",
-  licenseKey: "non-commercial-and-evaluation",
-  width: '100%',
-  manualColumnResize: true,
-  manualRowResize: true
-}
 const numberDefaultCol = 3;
 
 function App() {
+  // default value
+  const defaultHotSetting = {
+    columns: [
+      {
+        data: "",
+        type: "checkbox",
+      },
+      {
+        data: "id",
+        type: "text",
+        readOnly: true,
+        renderer: 'renderIdColumn'
+      },
+      {
+        data: "name",
+        type: "text",
+        readOnly: true,
+      },
+    ],
+    colHeaders: ["", "Id", "Name"],
+    rowHeaders: true,
+    className: "htLeft",
+    licenseKey: "non-commercial-and-evaluation",
+    width: '100%',
+    manualColumnResize: true,
+    manualRowResize: true,
+    afterChange: handleAfterChange
+  }
   // State
   const [hotSetting, setHotSetting] = useState(defaultHotSetting);
   const [colParamsCollapse, setColParamsCollapse] = useState([]);
@@ -114,6 +116,7 @@ function App() {
 
   function mapDataToHT(lists) {
     const data = lists.reduce((dataSource, item, index) => {
+      console.log(index)
       return [].concat(dataSource, {
         id: item.id,
         name: item.name,
@@ -143,6 +146,12 @@ function App() {
     })
     hotRef.current.render();
     setSelectedParams(values);
+  }
+
+  function handleAfterChange(changes, source) {
+    if(source !== 'edit')  return;
+
+    console.log(changes)
   }
 
   return (
