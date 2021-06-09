@@ -8,10 +8,6 @@ $ npm install
 $ npm start
 ```
 
-## Working application
-
-Check out the live ->
-
 ## Screenshot
 
 ![alt text](public/dashboard.png)
