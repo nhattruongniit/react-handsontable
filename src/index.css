@@ -65,11 +65,18 @@ code {
   font-style: italic !important;
 }
 
-.areaUnsaved {
+.direct-changed {
+  background: #fff2cc !important;
+  text-align: left !important;
+  color: #999 !important;
+  font-style: italic !important;
+}
+
+.areaAction {
   text-align: right;
   margin: 10px 0;
 }
 
-.areaUnsaved label {
+.areaAction label {
   cursor: pointer;
 }

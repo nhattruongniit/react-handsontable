@@ -48,13 +48,17 @@ function App() {
   const [options, setOptions] = useState([]);
   const [selectedParams, setSelectedParams] = useState([]);
   const [isUnsavedRows, setIsUnsavedRows] = useState(false);
+  const [rowsSelected, setRowsSelected] = useState({});
   // Refs
   const tableRef = useRef();
   const hotRef = useRef();
   const defaultCellsRef = useRef({});
+  const defaultDataRef = useRef([])
   const colParamsCollapse = useRef([]);
   const totalColumnRef = useRef([]);
-  const rowsHaveItemChanged = useRef({})
+  const rowsHaveItemChangedRef = useRef({})
+  const rowsResetedRef = useRef({})
+  const itemRowsChangesRef = useRef({})
 
   // init handsonetable
   useEffect(() => {
@@ -77,6 +81,9 @@ function App() {
           readOnly: param.key === 'country',
           renderer: param.key === 'country' ? 'renderFlagColumn' : (instance, td, row, col, prop, value, cellProperties) => {
             Handsontable.renderers.TextRenderer.apply(this, [instance, td, row, col, prop, value, cellProperties]);
+            if(rowsResetedRef.current[row] || itemRowsChangesRef.current[`${row}-changed-${col}`]) {
+              td.className = rowsResetedRef.current[row] ? 'direct-changed' : 'changed'
+            }
             td.style.backgroundColor = defaultCellsRef.current[`${row}-default-${col}`] ? '#eee' : '#fff';
             td.style.color = defaultCellsRef.current[`${row}-default-${col}`] ? '#999' : '#333';
             td.style.fontStyle = defaultCellsRef.current[`${row}-default-${col}`] ? 'italic' : 'normal';
@@ -131,6 +138,7 @@ function App() {
       })
     },[])
     defaultCellsRef.current = Object.assign({}, newDefaultCells);
+    defaultDataRef.current = [].concat(JSON.parse(JSON.stringify(data)));
     hotRef.current.updateSettings({
       data
     });
@@ -151,12 +159,19 @@ function App() {
   }
 
   function handleAfterChange(changes, source) {
-    if(source !== 'edit')  return;
+    if(source !== 'edit') return;
     setIsUnsavedRows(true);
+
     const columnIndex = totalColumnRef.current.indexOf(changes[0][1]);
     if(columnIndex >= numFixedCol) {
-      rowsHaveItemChanged.current[changes[0][0]] = true;
+      rowsHaveItemChangedRef.current[changes[0][0]] = true;
+      itemRowsChangesRef.current[`${changes[0][0]}-changed-${columnIndex}`] = true;
       hotRef.current.setCellMeta(changes[0][0], columnIndex, 'className', 'changed');
+    }
+    if(columnIndex === 0) {
+      setRowsSelected(prevState => {
+        return {...prevState, [changes[0][0]]: changes[0][3] }
+      })
     }
     hotRef.current.render();
   }
@@ -178,10 +193,12 @@ function App() {
     const rows = hotRef.current.countRows();
     let i = 0;
     while (i < rows) {
-      if(Object.keys(rowsHaveItemChanged.current).length > 0 && !rowsHaveItemChanged.current[i]) {
-        hiddenRows.push(i);
+      if(Object.keys(rowsHaveItemChangedRef.current).length > 0 || Object.keys(rowsResetedRef.current).length > 0 ) {
+        if(!rowsHaveItemChangedRef.current[i] && !rowsResetedRef.current[i]) {
+          hiddenRows.push(i);
+        }
+        i++;
       }
-      i++;
     }
     hotRef.current.updateSettings({
       hiddenRows: {
@@ -189,6 +206,43 @@ function App() {
         indicators: true
       }
     })
+  }
+
+  function handleResetDefaultValue() {
+    const newValue = [];
+    const tableData = hotRef.current.getData();
+    const listsIndexChange = Object.keys(rowsSelected).filter(row => rowsSelected[row]);
+    const newRowsReseted = {
+      ...rowsResetedRef.current,
+      ...listsIndexChange.reduce((acc, item) => {
+        return {
+          ...acc,
+          [item]: rowsSelected[item]
+        }
+      }, {})
+    }
+    listsIndexChange.forEach(item => {
+      const parseItem = parseFloat(item);
+      colParamsCollapse.current.forEach((colName, colIndex) => {
+        if(defaultDataRef.current[parseItem][colName] !== tableData[parseItem][colIndex + numFixedCol]) {
+          newValue.push([parseItem, colName, defaultDataRef.current[parseItem][colName]])
+        }
+      })
+    });
+    if(newValue.length > 0) {
+      hotRef.current.setDataAtRowProp(newValue)
+      hotRef.current.render();
+    }
+    hotRef.current.updateSettings({
+      cells: (row, col) => {
+        const cellProperties = {};
+        if(rowsSelected[row] && col >= numFixedCol) {
+          cellProperties.className = 'reset-changed'
+        }
+        return cellProperties
+      }
+    })
+    rowsResetedRef.current = newRowsReseted
   }
 
   return (
@@ -207,7 +261,18 @@ function App() {
           />
         </div>
       </div>
-      <div className="areaUnsaved">
+      <div className="areaAction">
+        {Object.keys(rowsSelected).length > 0 && (
+          <p className="px-3 d-inline-block">
+            <button 
+              type="button" 
+              className="btn btn-primary btn-sm"
+              onClick={handleResetDefaultValue}
+            >
+                Reset Default Value
+            </button>
+          </p>
+        )}
         {isUnsavedRows && (
           <>
             <input id="unsaved" type="checkbox" onChange={toggleUnsavedRows}/> <label htmlFor="unsaved">Unsaved Rows</label>
