@@ -33,7 +33,7 @@ export const users = [
     params: [
       {
         key: 'nickname',
-        isDefault: 'true',
+        isDefault: 'false',
         value: 'Tony'
       },
       {
@@ -43,7 +43,7 @@ export const users = [
       },
       {
         key: 'email',
-        isDefault: 'true',
+        isDefault: 'false',
         value: 'nhattruomng1811@gmail.com'
       },
       {
@@ -79,12 +79,12 @@ export const users = [
       },
       {
         key: 'job',
-        isDefault: 'true',
+        isDefault: 'false',
         value: 'Software Engineer'
       },
       {
         key: 'country',
-        isDefault: 'true',
+        isDefault: 'false',
         value: 'vn'
       },
     ]
@@ -95,12 +95,12 @@ export const users = [
     params: [
       {
         key: 'nickname',
-        isDefault: 'true',
+        isDefault: 'false',
         value: 'David Tran'
       },
       {
         key: 'brithday',
-        isDefault: 'true',
+        isDefault: 'false',
         value: 'Eo bit'
       },
       {

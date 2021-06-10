@@ -38,7 +38,7 @@ const defaultHotSetting = {
   manualColumnResize: true,
   manualRowResize: true
 }
-const numberDefaultCol = 3;
+const numFixedCol = 3;
 
 function App() {
   // State
@@ -47,10 +47,10 @@ function App() {
   const [options, setOptions] = useState([]);
   const [selectedParams, setSelectedParams] = useState([]);
   const [totalColumn, setTotalColumn] = useState([]);
-
   // Refs
   const tableRef = useRef();
   const hotRef = useRef();
+  let defaultCellsRef = useRef({});
 
   // init handsonetable
   useEffect(() => {
@@ -74,9 +74,9 @@ function App() {
           readOnly: param.key === 'country',
           renderer: param.key === 'country' ? 'renderFlagColumn' : (instance, td, row, col, prop, value, cellProperties) => {
             Handsontable.renderers.TextRenderer.apply(this, [instance, td, row, col, prop, value, cellProperties]);
-            td.style.backgroundColor = '#fff';
-            td.style.color = '#333';
-            td.style.fontStyle = 'normal';
+            td.style.backgroundColor = defaultCellsRef.current[`${row}-default-${col}`] ? '#eee' : '#fff';
+            td.style.color = defaultCellsRef.current[`${row}-default-${col}`] ? '#999' : '#333';
+            td.style.fontStyle = defaultCellsRef.current[`${row}-default-${col}`] ? 'italic' : 'normal';
             td.innerText = value
           }
         }]
@@ -113,28 +113,32 @@ function App() {
   }
 
   function mapDataToHT(lists) {
-    const data = lists.reduce((dataSource, item, index) => {
+    const newDefaultCells = {};
+    const data = lists.reduce((dataSource, item, rowIndex) => {
       return [].concat(dataSource, {
         id: item.id,
         name: item.name,
-        ...item.params.reduce((paramMap, param) => {
+        ...item.params.reduce((paramMap, param, colIndex) => {
+          if(param.isDefault === 'true') {
+            newDefaultCells[`${rowIndex}-default-${colIndex + numFixedCol}`] = true
+          }
           return {
             ...paramMap,
             [param.key]: param.value
           }
         }, {})
       })
-    },[])    
-
+    },[])
+    defaultCellsRef.current = newDefaultCells;
     hotRef.current.updateSettings({
       data
-    })
+    });
+    hotRef.current.render();
   }
 
   function onChangeSelected(values) {
     const newValues = values.map(val => val.value);
     const hideColumns = colParamsCollapse.filter(val => !newValues.includes(val)).map(col => totalColumn.indexOf(col))
-
     hotRef.current.updateSettings({
       hiddenColumns: {
         columns: hideColumns,
