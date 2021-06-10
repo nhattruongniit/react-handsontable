@@ -40,3 +40,36 @@ code {
 .cad {
   background-image: url("./assets/images/cad-flag.svg");
 }
+
+.areaSelect {
+  display: flex;
+  align-items: center;
+}
+
+.areaSelect_right {
+  flex-grow: 1;
+  margin-left: 20px;
+}
+
+.changed {
+  background: #fff2cc !important;
+  text-align: left !important;
+  color: #333 !important;
+  font-style: normal !important;
+}
+
+.reset-changed {
+  background: #fff2cc !important;
+  text-align: left !important;
+  color: #999 !important;
+  font-style: italic !important;
+}
+
+.areaUnsaved {
+  text-align: right;
+  margin: 10px 0;
+}
+
+.areaUnsaved label {
+  cursor: pointer;
+}

@@ -12,53 +12,56 @@ function httpRequest(value) {
     setTimeout(() => resvole(value), 1000)
   })
 }
-const defaultHotSetting = {
-  columns: [
-    {
-      data: "",
-      type: "checkbox",
-    },
-    {
-      data: "id",
-      type: "text",
-      readOnly: true,
-      renderer: 'renderIdColumn'
-    },
-    {
-      data: "name",
-      type: "text",
-      readOnly: true,
-    },
-  ],
-  colHeaders: ["", "Id", "Name"],
-  rowHeaders: true,
-  className: "htLeft",
-  licenseKey: "non-commercial-and-evaluation",
-  width: '100%',
-  manualColumnResize: true,
-  manualRowResize: true
-}
 const numFixedCol = 3;
 
 function App() {
+  // default value
+  const defaultHotSetting = {
+    columns: [
+      {
+        data: "",
+        type: "checkbox",
+      },
+      {
+        data: "id",
+        type: "text",
+        readOnly: true,
+        renderer: 'renderIdColumn'
+      },
+      {
+        data: "name",
+        type: "text",
+        readOnly: true,
+      },
+    ],
+    colHeaders: ["", "Id", "Name"],
+    rowHeaders: true,
+    className: "htLeft",
+    licenseKey: "non-commercial-and-evaluation",
+    width: '100%',
+    manualColumnResize: true,
+    manualRowResize: true,
+    afterChange: handleAfterChange
+  }
   // State
   const [hotSetting, setHotSetting] = useState(defaultHotSetting);
-  const [colParamsCollapse, setColParamsCollapse] = useState([]);
   const [options, setOptions] = useState([]);
   const [selectedParams, setSelectedParams] = useState([]);
-  const [totalColumn, setTotalColumn] = useState([]);
+  const [isUnsavedRows, setIsUnsavedRows] = useState(false);
   // Refs
   const tableRef = useRef();
   const hotRef = useRef();
-  let defaultCellsRef = useRef({});
+  const defaultCellsRef = useRef({});
+  const colParamsCollapse = useRef([]);
+  const totalColumnRef = useRef([]);
+  const rowsHaveItemChanged = useRef({})
 
   // init handsonetable
   useEffect(() => {
     fetchData();
-    const columnsToCollapse = [];
     const newOptions = []
     const settings = params.reduce(({ colHeaders, columns}, param) => {
-      columnsToCollapse.push(param.key)
+      colParamsCollapse.current.push(param.key)
       newOptions.push({
         label: param.key,
         value: param.key,
@@ -91,14 +94,12 @@ function App() {
       td.innerHTML = `<div class='flag ${value}' />`
     })
     const newHotSetting = {...hotSetting, ...settings};
-    const newTotalColumn = settings.columns.map(col => col.data);
 
     // set state
     setHotSetting(newHotSetting);
-    setColParamsCollapse(columnsToCollapse);
     setOptions(newOptions);
     setSelectedParams(newOptions);
-    setTotalColumn(newTotalColumn);
+    totalColumnRef.current = settings.columns.map(col => col.data);
 
     // new handsontable
     hotRef.current = new Handsontable(tableRef.current, {
@@ -129,7 +130,7 @@ function App() {
         }, {})
       })
     },[])
-    defaultCellsRef.current = newDefaultCells;
+    defaultCellsRef.current = Object.assign({}, newDefaultCells);
     hotRef.current.updateSettings({
       data
     });
@@ -138,7 +139,7 @@ function App() {
 
   function onChangeSelected(values) {
     const newValues = values.map(val => val.value);
-    const hideColumns = colParamsCollapse.filter(val => !newValues.includes(val)).map(col => totalColumn.indexOf(col))
+    const hideColumns = colParamsCollapse.current.filter(val => !newValues.includes(val)).map(col => totalColumnRef.current.indexOf(col))
     hotRef.current.updateSettings({
       hiddenColumns: {
         columns: hideColumns,
@@ -149,17 +150,70 @@ function App() {
     setSelectedParams(values);
   }
 
+  function handleAfterChange(changes, source) {
+    if(source !== 'edit')  return;
+    setIsUnsavedRows(true);
+    const columnIndex = totalColumnRef.current.indexOf(changes[0][1]);
+    if(columnIndex >= numFixedCol) {
+      rowsHaveItemChanged.current[changes[0][0]] = true;
+      hotRef.current.setCellMeta(changes[0][0], columnIndex, 'className', 'changed');
+    }
+    hotRef.current.render();
+  }
+
+  function toggleUnsavedRows(event) {
+    const hiddenRows = [];
+    const { checked } = event.target;
+
+    if(!checked) {
+      hotRef.current.updateSettings({
+        hiddenRows: {
+          rows: hiddenRows,
+          indicators: true
+        }
+      });
+      return;
+    }
+
+    const rows = hotRef.current.countRows();
+    let i = 0;
+    while (i < rows) {
+      if(Object.keys(rowsHaveItemChanged.current).length > 0 && !rowsHaveItemChanged.current[i]) {
+        hiddenRows.push(i);
+      }
+      i++;
+    }
+    hotRef.current.updateSettings({
+      hiddenRows: {
+        rows: hiddenRows,
+        indicators: true
+      }
+    })
+  }
+
   return (
     <div className="container">
       <h2 className="text-center my-3">React Handsomtable</h2>
-      <Select 
-        isMulti
-        name="params"
-        value={selectedParams}
-        options={options}
-        onChange={onChangeSelected}
-        className="select__menu"
-      />
+      <div className="areaSelect">
+        <div>Show/Hide Columns:</div>
+        <div className="areaSelect_right">
+          <Select 
+            isMulti
+            name="params"
+            value={selectedParams}
+            options={options}
+            onChange={onChangeSelected}
+            className="select__menu"
+          />
+        </div>
+      </div>
+      <div className="areaUnsaved">
+        {isUnsavedRows && (
+          <>
+            <input id="unsaved" type="checkbox" onChange={toggleUnsavedRows}/> <label htmlFor="unsaved">Unsaved Rows</label>
+          </>
+        )}
+      </div>
       <br/>
       <div id="handsontable" ref={tableRef} />
     </div>
