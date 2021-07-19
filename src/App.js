@@ -34,7 +34,11 @@ function App() {
         readOnly: true,
       },
     ],
-    colHeaders: ["", "Id", "Name"],
+    // colHeaders: ["", "Id", "Name"],
+    // colHeaders: function(index) {
+    //   console.log('colParamsCollapse: ' ,colParamsCollapse)
+    //   return index + ': AB';
+    // },
     rowHeaders: true,
     className: "htLeft",
     licenseKey: "non-commercial-and-evaluation",
@@ -66,10 +70,30 @@ function App() {
         value: param.key,
       })
       return {
-        colHeaders: [
-          ...colHeaders,
-          param.key
-        ],
+        // colHeaders: [
+        //   ...colHeaders,
+        //   param.key
+        // ],
+        colHeaders: function(index) {
+          let title = '';
+          if(index >= 3) {
+            title = `<button type="button" data-colIndex=${index}>${params[index - 3].key}</button>`
+          }
+          switch(index) {
+            case 0: 
+              title = '';
+              break
+            case 1: 
+              title = 'Id';
+              break
+            case 2: 
+              title = '<b>Name</b>';
+              break
+            default:
+              break
+          }
+          return title
+        },
         columns: [...columns, {
           data: param.key,
           type: 'text',
@@ -116,7 +140,6 @@ function App() {
 
   function mapDataToHT(lists) {
     const data = lists.reduce((dataSource, item, index) => {
-      console.log(index)
       return [].concat(dataSource, {
         id: item.id,
         name: item.name,
@@ -149,9 +172,13 @@ function App() {
   }
 
   function handleAfterChange(changes, source) {
-    if(source !== 'edit')  return;
+    if(!changes) return;
 
     console.log(changes)
+  }
+
+  function handleClickColParams(index) {
+    console.log("handleClickColParams: ", index)
   }
 
   return (
