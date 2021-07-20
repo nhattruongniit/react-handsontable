@@ -21,7 +21,6 @@ function App() {
       {
         data: "",
         type: "checkbox",
-        renderer: 'renderCheckboxColumn',
       },
       {
         data: "id",
@@ -36,23 +35,17 @@ function App() {
       },
     ],
     // colHeaders: ["", "Id", "Name"],
+    // colHeaders: function(index) {
+    //   console.log('colParamsCollapse: ' ,colParamsCollapse)
+    //   return index + ': AB';
+    // },
     rowHeaders: true,
     className: "htLeft",
     licenseKey: "non-commercial-and-evaluation",
     width: '100%',
     manualColumnResize: true,
     manualRowResize: true,
-    afterChange: handleAfterChange,
-    afterGetColHeader: (col, TH) => {
-      TH.className = 'thColHeader';
-      if(col === 0){
-        TH.innerHTML = `
-          <div class="headerCheckAll">
-            <input type="checkbox" class="colCheckbox" />
-          </div>
-        `
-      }
-    }, 
+    afterChange: handleAfterChange
   }
   // State
   const [hotSetting, setHotSetting] = useState(defaultHotSetting);
@@ -67,11 +60,9 @@ function App() {
   const defaultDataRef = useRef([])
   const colParamsCollapse = useRef([]);
   const totalColumnRef = useRef([]);
-  const rowsHaveItemChangedRef = useRef({});
-  const rowsResetedRef = useRef({});
-  const itemRowsChangesRef = useRef({});
-  const isCheckedRef = useRef(false);
-  const selectedRowsRef = useRef({});
+  const rowsHaveItemChangedRef = useRef({})
+  const rowsResetedRef = useRef({})
+  const itemRowsChangesRef = useRef({})
 
   // init handsonetable
   useEffect(() => {
@@ -91,7 +82,7 @@ function App() {
         colHeaders: function(index) {
           let title = '';
           if(index >= 3) {
-            title = `${params[index - numFixedCol].key}<button id="btnFilter" type="button" data-colIndex=${index}>button</button>`
+            title = `<button type="button" id="btnFilter" data-colIndex=${index}>${params[index - 3].key}</button>`
           }
           switch(index) {
             case 0: 
@@ -101,7 +92,7 @@ function App() {
               title = 'Id';
               break
             case 2: 
-              title = 'Name';
+              title = '<b>Name</b>';
               break
             default:
               break
@@ -133,10 +124,6 @@ function App() {
       Handsontable.renderers.TextRenderer.apply(this, [instance, td, row, col, prop, value, cellProperties]);
       td.innerHTML = `<div class='flag ${value}' />`
     })
-    Handsontable.renderers.registerRenderer('renderCheckboxColumn', (instance, td, row, col, prop, value, cellProperties) => {
-      Handsontable.renderers.TextRenderer.apply(this, [instance, td, row, col, prop, value, cellProperties]);
-      td.innerHTML = `<input type="checkbox" data-rowIndex=${row} class="rowCheckbox" ${selectedRowsRef.current[row] ? 'checked="checked"' : ''} />`;
-    });
     const newHotSetting = {...hotSetting, ...settings};
 
     // set state
@@ -145,49 +132,10 @@ function App() {
     setSelectedParams(newOptions);
     totalColumnRef.current = settings.columns.map(col => col.data);
 
+    // handson add event
     Handsontable.dom.addEvent(tableRef.current, 'mousedown', (event) => {
       event.stopPropagation();
       event.stopImmediatePropagation();
-      if (event.target.nodeName === 'INPUT' && event.target.className === 'colCheckbox') {
-        const newIsChecked = !event.target.checked;
-        let newSelectedSongs = [];
-        let newSelectRows = {};
-        isCheckedRef.current = newIsChecked;  
-        if(newIsChecked) {
-          for(let i = 0; i < hotRef.current.countRows(); i++) {
-            newSelectedSongs.push(i)
-            newSelectRows[i] = true
-          }
-        } else {
-          newSelectedSongs = []
-          newSelectRows = {}
-        }
-       
-        selectedRowsRef.current = newSelectRows;
-
-        console.log('colCheckbox newSelectedSongs: ', newSelectedSongs)
-        console.log('colCheckbox newSelectRows: ', selectedRowsRef.current)
-        hotRef.current.render();
-      }
-      if (event.target.nodeName === 'INPUT' && event.target.className === 'rowCheckbox') {
-        const newIsChecked = !event.target.checked;
-        const value = Number(event.target.attributes['data-rowIndex'].value);
-        let newSelectedSongs = [...this.selectedSongs];
-        let newSelectRows = {...this.selectedRows};
-        const rowIndex = this.selectedSongs.findIndex(row => row === value);
-
-        if((newIsChecked && rowIndex > -1) || (!newIsChecked && rowIndex > -1)) {
-          newSelectedSongs.splice(rowIndex, 1);
-          delete newSelectRows[value]
-        } else {
-          newSelectedSongs.push(value);
-          newSelectRows[value] = true
-        }
-        console.log('colCheckbox rowCheckbox: ', newSelectedSongs)
-        console.log('colCheckbox rowCheckbox: ', newSelectRows)
-        selectedRowsRef.current = newSelectRows;
-        hotRef.current.render();
-      }
       if (event.target.nodeName === 'BUTTON' && event.target.id === 'btnFilter') {
         const colIndex = event.target.dataset.colindex
         console.log('BUTTON: ', colIndex)
@@ -250,6 +198,8 @@ function App() {
 
     const columnIndex = totalColumnRef.current.indexOf(changes[0][1]);
     if(columnIndex >= numFixedCol) {
+      console.log('changes: ', changes, totalColumnRef)
+
       rowsHaveItemChangedRef.current[changes[0][0]] = true;
       itemRowsChangesRef.current[`${changes[0][0]}-changed-${columnIndex}`] = true;
       hotRef.current.setCellMeta(changes[0][0], columnIndex, 'className', 'changed');
